@@ -12,7 +12,7 @@ module BskPRM # (
 	input  wire [1:0] iA,		// шина адреса
 	input  wire [3:0] iCS,		// сигнал выбора микросхемы	
 	
-	input  reg  [15:0] iComT,	// вход теста команд
+	input  wire [15:0] iComT,	// вход теста команд
 	output wire [15:0] oCom,	// выход команд (активный 0)
 	output wire [15:0] oComInd,	// выход индикации команд (активный 0)
 	output wire oCS,			// выход адреса микросхемы (активный 0)
@@ -22,7 +22,7 @@ module BskPRM # (
 	// код разрешения работы клеммника
 	localparam ENABLE  = 8'hE1; 
 
-	// команды 
+	// команды старший и младший байт
 	reg [15:0] com_hi;
 	reg [15:0] com_low;
 
@@ -33,43 +33,43 @@ module BskPRM # (
 	reg [15:0] com_ind;
 
 	// команда управления
-	reg [7:0] control;
-
-	// сигнал разрешения работы клеммника
-	wire enable;
-
-	// сигнал сброса (активный 1)
-	wire aclr = !iRes;	
-
-	// сигнал выбора микросхемы (активный 1)
-	wire cs = (iCS == CS);
+	reg [7:0] control;	
 
 	initial begin
-		com_hi = 16'h0000;
-		com_low = 16'h0000;
-		com_ind = 16'h0000;
-		data_bus = 16'h0000;
 		control = 8'h00;
-	end 
+		com_hi  = 16'h0000;
+		com_low = 16'h0000;
+		com_ind = 16'h0000;	
+		data_bus = 16'h0000;
+	end
 	
+	// сигнал сброса (активный 1)
+	assign aclr = !iRes;	
+
+	// сигнал выбора микросхемы (активный 1)
+	assign cs = (iCS == CS);
+
+	// сигнал блокировки (активный 1)
+	assign bl = !(iBl && iRes);
+
+	// сигнал разрешения работы клеммника (активный 1)
+	assign enable  = (control == ENABLE);
+
+	// выход разрешения работы клеммника
+	assign oEnable = !enable || bl; 
+
 	// сигнал выбора микросхемы (активный)
 	assign oCS = !cs;
 
 	// индикация команд
 	assign oComInd = ~com_ind;
-	
-	// сигнал выбора чтения (0) /запись (1)
-	assign rw = iRd && !iWr && cs;
 
 	// двунаправленная шина данных
 	assign bD = (iRd || !cs) ? 16'bZ : data_bus; 
-
-	//
-	assign enable = (control == ENABLE);
-
+	
 	// чтение данных 
-	always @ (rw or iA)	begin : data_read
-		if (!rw) begin
+	always @ (cs or iRd or iA)	begin : data_read
+		if (cs && !iRd) begin
 			case(iA)
 				2'b00: begin
 					data_bus <= iComT; 
@@ -82,7 +82,7 @@ module BskPRM # (
 					data_bus <= 16'h0000;
 				end
 				2'b11: begin
-					data_bus[07:0] <= (VERSION << 2) +(iKEnable << 1) + !enable;
+					data_bus[07:0] <= (VERSION << 2) + (iKEnable << 1) + !enable;
 					data_bus[15:8] <= PASSWORD;
 				end
 			endcase
@@ -90,16 +90,19 @@ module BskPRM # (
 	end
 
 	// запись внутренних регистров
-	always @ (rw or iA or aclr) begin : data_write
+	always @ (cs or iWr or iA or aclr) begin : data_write
 		if (aclr) begin
-			
+			control <=  8'h00;
+			com_hi  <= 16'h0000;
+			com_low <= 16'h0000;
+			com_ind <= 16'h0000;	
 		end
-		else if (rw) begin
+		else if (cs && !iWr) begin
 			case (iA)
-				2'b00: ;
-				2'b01: ;
-				2'b10: com_ind = bD;
-				2'b11: control = bD[7:0];
+				2'b00: com_low <= bD;
+				2'b01: com_hi  <= bD;
+				2'b10: com_ind <= bD;
+				2'b11: control <= bD[7:0];
 			endcase
 		end
 	end

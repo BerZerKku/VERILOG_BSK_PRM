@@ -82,12 +82,11 @@ module tb_BskPRM;
          iRd = 1'b0;
          iRes = 1'b1;
 
-         // проверка регистра 00
-         iA = 2'b00;
-         #1;
+         // проверка регистра 00 
+         iA = 2'b00; #1;               
          `CHECK_EQUAL(bD, 16'h1331); 
 
-          // проверка регистра 01
+         // проверка регистра 01
          iA = 2'b01;
          #1;
          `CHECK_EQUAL(bD, 16'h0000); 
@@ -129,58 +128,84 @@ module tb_BskPRM;
          iCS = CS;
          #1;
          `CHECK_EQUAL(bD, tmp); 
+
+         // проверка влияния управляющих сигналов на чтение 
+         iA = 2'b00; 
+         iComT = 16'h1331; #1;
+         `CHECK_EQUAL(bD, 16'h1331); 
+         iComT = 16'h987F; #1;         
+         `CHECK_EQUAL(bD, 16'h1331); // старое значние
+         iCS = ~CS; #1; 
+         `CHECK_EQUAL(bD, 16'hZZZZ); // 3-е состояние
+         iCS = CS; #1;
+         `CHECK_EQUAL(bD, 16'h987F); // новое значние 
+         iComT = 16'h1234; #1;
+         `CHECK_EQUAL(bD, 16'h987F); // старое значение
+         iRd = 1'b1; #1;               
+         `CHECK_EQUAL(bD, DATA_BUS_DEF);  // сигнал на входе шины 
+         iRd = 1'b0; #1;
+         `CHECK_EQUAL(bD, 16'h1234); // новое значение
+         iComT = 16'h7893; #1;
+         `CHECK_EQUAL(bD, 16'h1234); // старое значние    
+         iA = 1'b01; #1; 
+         iA = 1'b00; #1;
+         `CHECK_EQUAL(bD, 16'h7893); // новое значение
       end
 
-   //    `TEST_CASE("test_write") begin : test_write
-   //       // начальные установки
-   //       iCS = CS;
-   //       iRes = 1'b1;
+       // проверка записи
+      `TEST_CASE("test_write") begin : test_write
+         // начальные установки
+         iCS = CS;
+         iRes = 1'b1;
         
-   //       // проверка начального состояния регистров
-   //       iRd = 1'b0;
-   //       iA = 2'b10;
-   //       #1
-   //       `CHECK_EQUAL(bD, 16'h0000); 
-   //       iA = 2'b11;
-   //       #1
-   //       `CHECK_EQUAL(bD[0], 1'b0); 
+         // проверка начального состояния регистров
+         iRd = 1'b0;
+         iA = 2'b00; #1;
+         `CHECK_EQUAL(bD, 16'h1331); 
+         iA = 2'b01; #1;
+         `CHECK_EQUAL(bD, 16'h0000); 
+         iA = 2'b10; #1;
+         `CHECK_EQUAL(bD, 16'h0000); 
+         iA = 2'b11; #1; 
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
+         `CHECK_EQUAL(bD, tmp);
 
-   //       // проверка записи данных 
-   //       tmp = 0'h9321;
-   //       data_bus = tmp;
-   //       iRd = 1'b1;
-   //       iWr = 1'b0;
-   //       iA = 2'b10; // запись по адресу 0x02
-   //       #1
-   //       iA = 2'b11; // запись по адресу 0x03
-   //       #1
-   //       iRd = 1'b0;   // + проверка преобладания iRd над iWr
-   //       data_bus = 16'h0000;
-   //       #1
-   //       `CHECK_EQUAL(bD, (PASSWORD << 8) + (VERSION << 1) + 1'b1); 
-   //       iA = 2'b10;
-   //       #1
-   //       `CHECK_EQUAL(bD, tmp);
+         // проверка записи данных 
+         tmp = 0'h9321;
+         data_bus = tmp;
+         iRd = 1'b1;
+         iWr = 1'b0;
+         iA = 2'b10; // запись по адресу 0x02
+         #1
+         iA = 2'b11; // запись по адресу 0x03
+         #1
+         iRd = 1'b0;   // + проверка преобладания iRd над iWr
+         data_bus = 16'h0000;
+         #1
+         `CHECK_EQUAL(bD, (PASSWORD << 8) + (VERSION << 1) + 2'b11); 
+         iA = 2'b10;
+         #1
+         `CHECK_EQUAL(bD, tmp);
          
-   //       // проверка при неактивном CS
-   //       data_bus  = 0'h1516;
-   //       #1
-   //       iCS = ~CS;
-   //       iRd = 1'b1;
-   //       #1
-   //       iRd = 1'b0;
-   //       iCS = CS;
-   //       #1
-   //       `CHECK_EQUAL(bD, tmp); 
+         // проверка при неактивном CS
+         data_bus  = 0'h1516;
+         #1
+         iCS = ~CS;
+         iRd = 1'b1;
+         #1
+         iRd = 1'b0;
+         iCS = CS;
+         #1
+         `CHECK_EQUAL(bD, tmp); 
 
-   //       // проверка очистки регистров при сбросе
-   //       iRes = 1'b0;
-   //       #1
-   //       `CHECK_EQUAL(bD, tmp); 
-   //       iA = 2'b11;
-   //       #1
-   //       `CHECK_EQUAL(bD, (PASSWORD << 8) + (VERSION << 1) + 1'b0);
-   //    end
+         // проверка очистки регистров при сбросе
+         iRes = 1'b0;
+         #1
+         `CHECK_EQUAL(bD, tmp); 
+         iA = 2'b11;
+         #1
+         `CHECK_EQUAL(bD, (PASSWORD << 8) + (VERSION << 1) + 1'b0);
+      end
 
    //    `TEST_CASE("test_com_ind") begin : test_com_ind
    //       // проверка начального состояния
