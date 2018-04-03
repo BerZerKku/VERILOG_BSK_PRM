@@ -24,7 +24,7 @@ module BskPRM # (
 
 	// команды старший и младший байт
 	reg [15:0] com;
-	reg [3:0] com_enable;
+	reg [3:0] com_err;
 
 	// шина чтения
 	reg [15:0] data_bus;
@@ -38,7 +38,7 @@ module BskPRM # (
 	initial begin
 		control = 8'h00;
 		com  = 16'h0000;
-		com_enable = 4'b0000;
+		com_err = 4'b1111;
 		com_ind = 16'h0000;	
 		data_bus = 16'h0000;
 	end
@@ -68,10 +68,7 @@ module BskPRM # (
 	assign bD = (iRd || !cs) ? 16'bZ : data_bus; 
 	
 	// выход команд
-	assign oCom = ((com_enable != 4'b1111) || bl) ? 16'hFFFF : com;
-	
-	reg a;
-	reg b;
+	assign oCom = (com_err || bl) ? 16'hFFFF : com;
 	
 	// чтение данных 
 	always @ (cs or iRd or iA)	begin : data_read
@@ -99,7 +96,7 @@ module BskPRM # (
 		if (aclr) begin
 			control <=  8'h00;
 			com <= 16'h0000;
-			com_enable <= 4'b0000;
+			com_err <= 4'b1111;
 			com_ind <= 16'h0000;	
 		end
 		else if (cs && !iWr) begin
@@ -107,14 +104,14 @@ module BskPRM # (
 				2'b00: begin 
 					com[3:0] <= bD[7:4];
 					com[7:4] <= bD[15:12];	
-					com_enable[0] = (bD[3:0] == ~bD[7:4]);
-					com_enable[1] = (bD[11:8] == ~bD[15:12]);
+					com_err[0] <= !(bD[3:0] == ~bD[7:4]);
+					com_err[1] <= !(bD[11:8] == ~bD[15:12]);
 				end
 				2'b01: begin
 					com[11:8] <= bD[7:4];
 					com[15:12] <= bD[15:12];
-					com_enable[2] <= (bD[3:0] == ~bD[7:4]);
-					com_enable[3] <= (bD[11:8] == ~bD[15:12]);
+					com_err[2] <= !(bD[3:0] == ~bD[7:4]);
+					com_err[3] <= !(bD[11:8] == ~bD[15:12]);
 				end
 				2'b10: begin
 					com_ind <= bD;
