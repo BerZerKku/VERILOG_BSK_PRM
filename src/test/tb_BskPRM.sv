@@ -147,8 +147,8 @@ module tb_BskPRM;
          `CHECK_EQUAL(bD, 16'h1234); // новое значение
          iComT = 16'h7893; #1;
          `CHECK_EQUAL(bD, 16'h1234); // старое значние    
-         iA = 1'b01; #1; 
-         iA = 1'b00; #1;
+         iA = 2'b01; #1; 
+         iA = 2'b00; #1;
          `CHECK_EQUAL(bD, 16'h7893); // новое значение
       end
 
@@ -170,132 +170,143 @@ module tb_BskPRM;
          tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
          `CHECK_EQUAL(bD, tmp);
 
-         // проверка записи данных 
-         tmp = 0'h9321;
-         data_bus = tmp;
-         iRd = 1'b1;
-         iWr = 1'b0;
-         iA = 2'b10; // запись по адресу 0x02
-         #1
-         iA = 2'b11; // запись по адресу 0x03
-         #1
-         iRd = 1'b0;   // + проверка преобладания iRd над iWr
-         data_bus = 16'h0000;
-         #1
-         `CHECK_EQUAL(bD, (PASSWORD << 8) + (VERSION << 1) + 2'b11); 
-         iA = 2'b10;
-         #1
+         // проверка записи данных в регистры 00 и 01
+         iRd = 1'b1; 
+         iA = 2'b00; #1;
+         data_bus = 16'hA5C3;
+         iWr = 1'b0; #1;
+         data_bus = 16'h8769;
+         iA = 2'b01; #1;
+         iRd = 1'b0; #1;
+         `CHECK_EQUAL(bD, 16'h86AC);
+            
+         // проверка записи данных в регистр 10
+         data_bus = 16'h1234;
+         iA = 2'b10; iRd = 1'b1; #1;
+         `CHECK_EQUAL(oComInd, ~16'h1234);
+
+         // проверка записи данных в регистр 11
+         data_bus = 8'hE1;
+         iA = 2'b11; iRd = 1'b1; #1;
+         iRd = 1'b0; #1;
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b10;
+         `CHECK_EQUAL(bD, tmp);
+         data_bus = 8'h11;
+         iA = 2'b00; #1;
+         iRd = 1'b1; iA = 2'b11; #1;
+         iRd = 1'b0; #1;
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
+         `CHECK_EQUAL(bD, tmp);
+         data_bus = 8'hE1;
+         iRd = 1'b1; iCS = ~CS; #1;
+         iCS = CS; #1;
+         iRd = 1'b0; #1;
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b10;
          `CHECK_EQUAL(bD, tmp);
          
          // проверка при неактивном CS
-         data_bus  = 0'h1516;
-         #1
-         iCS = ~CS;
-         iRd = 1'b1;
-         #1
-         iRd = 1'b0;
-         iCS = CS;
-         #1
-         `CHECK_EQUAL(bD, tmp); 
+         data_bus  = 16'h1516; 
+         iA = 2'b10; iRd = 1'b1; #1;
+         `CHECK_EQUAL(oComInd, ~16'h1516);
+         iCS = ~CS; #1;
+         `CHECK_EQUAL(oComInd, ~16'h1516);
+         data_bus  = 16'h3456;
+         iWr = 1'b1; #1; iWr = 1'b0; #1;
+         `CHECK_EQUAL(oComInd, ~16'h1516);
+         iCS = CS; #1;
+         `CHECK_EQUAL(oComInd, ~16'h3456);
 
          // проверка очистки регистров при сбросе
-         iRes = 1'b0;
-         #1
-         `CHECK_EQUAL(bD, tmp); 
-         iA = 2'b11;
-         #1
-         `CHECK_EQUAL(bD, (PASSWORD << 8) + (VERSION << 1) + 1'b0);
+         iRes = 1'b0; iRd = 1'b0; #1;
+         iA = 2'b00; #1;
+         `CHECK_EQUAL(oComInd, ~16'h0000);
+         iA = 2'b01; #1;
+         `CHECK_EQUAL(bD, 16'h0000); 
+         iA = 2'b11; #1;
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
+         `CHECK_EQUAL(bD, tmp);
       end
 
-   //    `TEST_CASE("test_com_ind") begin : test_com_ind
-   //       // проверка начального состояния
-   //       `CHECK_EQUAL(oComInd, 16'hFFFF);
+      // проверка команд индикации
+      `TEST_CASE("test_com_ind") begin : test_com_ind
+         // проверка начального состояния
+         `CHECK_EQUAL(oComInd, 16'hFFFF);
 
-   //       // начальные установки
-   //       data_bus = 16'h9231;
-   //       iCS = CS;
-   //       iA = 2'b10;
+         // начальные установки
+         data_bus = 16'h9231;
+         iCS = CS;
+         iA = 2'b10;
 
-   //       // проверка при установленном сигнале сброса
-   //       iWr = 1'b0;
-   //       #1
-   //       `CHECK_EQUAL(oComInd, 16'hFFFF);
+         // проверка при установленном сигнале сброса
+         iWr = 1'b0;
+         #1
+         `CHECK_EQUAL(oComInd, 16'hFFFF);
 
-   //       // проверка в отсутсвии сигнала сброса
-   //       iRes = 1'b1;
-   //       #1
-   //       `CHECK_EQUAL(oComInd, ~data_bus);
+         // проверка в отсутсвии сигнала сброса
+         iRes = 1'b1;
+         #1
+         `CHECK_EQUAL(oComInd, ~data_bus);
 
-   //       // проверка в остутсвтии сигнала CS
-   //       iCS = ~CS;
-   //       #1
-   //       `CHECK_EQUAL(oComInd, ~data_bus);
+         // проверка в остутсвтии сигнала CS
+         iCS = ~CS;
+         #1
+         `CHECK_EQUAL(oComInd, ~data_bus);
 
-   //       // проверка влияния сигнала блокировки
-   //       iBl = 1'b1;
-   //       #1
-   //       `CHECK_EQUAL(oComInd, ~data_bus);
-   //       iBl = 1'b0;
-   //       #1
-   //       `CHECK_EQUAL(oComInd, ~data_bus);
+         // проверка влияния сигнала блокировки
+         iBl = 1'b1;
+         #1
+         `CHECK_EQUAL(oComInd, ~data_bus);
+         iBl = 1'b0;
+         #1
+         `CHECK_EQUAL(oComInd, ~data_bus);
 
-   //       // проверка сигнала сброса
-   //       iRes = 1'b0;
-   //       #1
-   //       `CHECK_EQUAL(oComInd, 16'hFFFF);
-   //    end
+         // проверка сигнала сброса
+         iRes = 1'b0;
+         #1
+         `CHECK_EQUAL(oComInd, 16'hFFFF);
+      end
 
-   //    `TEST_CASE("test_test_signal") begin : test_test_signal
-   //       // проверка начального состояния
-   //       `CHECK_EQUAL(test, 1'b0); 
-   //       check_freq(tmp[0]);
-   //       `CHECK_EQUAL(tmp[0], 1'b0);
+      // проверка команд 
+      `TEST_CASE("test_com") begin : test_com
+         // проверка начального состояния
+         `CHECK_EQUAL(oCom, 16'hFFFF);
 
-   //       // проверка при отсутствии сигнала сброса
-   //       iRes = 1'b1;
-   //       #1
-   //       check_freq(tmp[0]);
-   //       `CHECK_EQUAL(test, 1'b0); 
-   //       `CHECK_EQUAL(tmp[0], 1'b0);
+         iRes = 1'b1;
+         iCS = CS;
+         iBl = 1'b1;
+         iRes = 1'b1;
+         data_bus = 16'hA55A;
+         iA = 2'b00; iWr = 1'b0; #1;
+         `CHECK_EQUAL(oCom, 16'hFFFF);
+         data_bus = 16'hF078;
+         iA = 2'b01; #1;
+         `CHECK_EQUAL(oCom, 16'hF7A5);
+         iBl = 1'b0; #1;
+         `CHECK_EQUAL(oCom, 16'hFFFF);
+         iBl = 1'b1;
+         iRes = 1'b0; #1;
+         `CHECK_EQUAL(oCom, 16'hFFFF);
+      end
 
-   //       // проверка при сигнале блокировки
-   //       iBl = 1'b1;
-   //       #1
-   //       check_freq(tmp[0]);
-   //       `CHECK_EQUAL(test, 1'b0); 
-   //       `CHECK_EQUAL(tmp[0], 1'b0);
-
-   //       // проверка при установленном бите test_en
-   //       data_bus = 16'h0001;
-   //       iCS = CS;
-   //       iA = 2'b11;
-   //       iWr = 1'b0;
-   //       #1
-   //       check_freq(tmp[0]);
-   //       `CHECK_EQUAL(test, 1'b1); 
-   //       `CHECK_EQUAL(tmp[0], 1'b1);
-
-   //       // проверка при сигнале блокировки
-   //       iBl = 1'b0;
-   //       #1
-   //       check_freq(tmp[0]);
-   //       `CHECK_EQUAL(test, 1'b0); 
-   //       `CHECK_EQUAL(tmp[0], 1'b0);
-
-   //       // проверка при снятии сигнала блокировки
-   //       iBl = 1'b1;
-   //       #1
-   //       check_freq(tmp[0]);
-   //       `CHECK_EQUAL(test, 1'b1); 
-   //       `CHECK_EQUAL(tmp[0], 1'b1);
-
-   //       // проверка при подаче сигнала сброса
-   //       iRes = 1'b0;
-   //       #1
-   //       check_freq(tmp[0]);
-   //       `CHECK_EQUAL(test, 1'b0); 
-   //       `CHECK_EQUAL(tmp[0], 1'b0);
-   //    end
+      // проверка сигнала разрешения работы клеммника
+      `TEST_CASE("test_enable_signal") begin : test_enable_signal
+         `CHECK_EQUAL(oEnable, 1'b1);
+         
+         iBl = 1'b1;
+         iRes = 1'b1;
+         iCS = CS;
+         `CHECK_EQUAL(oEnable, 1'b1);
+         data_bus = 8'hE1;
+         iA = 2'b11; iWr = 1'b0; #1;
+         `CHECK_EQUAL(oEnable, 1'b0);
+         iCS = ~iCS; #1;
+         `CHECK_EQUAL(oEnable, 1'b0);
+         iBl = 1'b0; #1;
+         `CHECK_EQUAL(oEnable, 1'b1);
+         iBl = 1'b1;
+         iRes = 1'b0; #1;
+         `CHECK_EQUAL(oEnable, 1'b1);
+      end
 
    end;
 
