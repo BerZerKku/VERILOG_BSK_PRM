@@ -41,6 +41,8 @@ module tb_BskPRM;
 
    reg [15:0] tmp;
 
+   int a;
+
    `TEST_SUITE begin
       
       `TEST_SUITE_SETUP begin
@@ -275,12 +277,53 @@ module tb_BskPRM;
          iCS = CS;
          iBl = 1'b1;
          iRes = 1'b1;
+
+         // запись корректного значения 1-8 команд
          data_bus = 16'hA55A;
          iA = 2'b00; iWr = 1'b0; #1;
          `CHECK_EQUAL(oCom, 16'hFFFF);
+         // запись корректного значения 16-9 команд
          data_bus = 16'hF078;
          iA = 2'b01; #1;
          `CHECK_EQUAL(oCom, 16'hF7A5);
+         // запись ошибочного значения 1-4 команд
+         data_bus = 16'hA55B;
+         iA = 2'b00; #1;
+         `CHECK_EQUAL(oCom, 16'hFFFF);
+         data_bus = 16'hA55A;
+         iWr = 1'b1; #1; iWr = 1'b0; #1;
+         `CHECK_EQUAL(oCom, 16'hF7A5);
+         
+         // проверка на ошибку в переданных командах 1-8
+         iA = 2'b00;
+         for(int count = 0; count < 16; count += 1) begin
+            tmp = 16'hA55A;
+            data_bus = tmp;
+            data_bus[count] = !data_bus[count];
+            $display("%d -> %h", count, data_bus);
+            iWr = 1'b1; #1; iWr = 1'b0; #1;
+            `CHECK_EQUAL(oCom, 16'hFFFF);
+            data_bus = tmp;
+            $display("%d -> %h", count, data_bus);
+            iWr = 1'b1; #1; iWr = 1'b0; #1;
+            `CHECK_EQUAL(oCom, 16'hF7A5);
+         end
+
+         // проверка на ошибку в переданных командах 16-9
+         iA = 2'b01;
+         for(int count = 0; count < 16; count += 1) begin
+            tmp = 16'hF078;
+            data_bus = tmp;
+            data_bus[count] = !data_bus[count];
+            $display("%d -> %h", count, data_bus);
+            iWr = 1'b1; #1; iWr = 1'b0; #1;
+            `CHECK_EQUAL(oCom, 16'hFFFF);
+            data_bus = tmp;
+            $display("%d -> %h", count, data_bus);
+            iWr = 1'b1; #1; iWr = 1'b0; #1;
+            `CHECK_EQUAL(oCom, 16'hF7A5);
+         end
+         
          iBl = 1'b0; #1;
          `CHECK_EQUAL(oCom, 16'hFFFF);
          iBl = 1'b1;
