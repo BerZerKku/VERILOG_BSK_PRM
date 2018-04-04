@@ -85,7 +85,8 @@ module tb_BskPRM;
          iRes = 1'b1;
 
          // проверка регистра 00 
-         iA = 2'b00; #1;               
+         iA = 2'b00; #1;
+         $display("iComT = %h, bD = %h", iComT, bD);               
          `CHECK_EQUAL(bD, 16'h1331); 
 
          // проверка регистра 01
@@ -136,22 +137,22 @@ module tb_BskPRM;
          iComT = 16'h1331; #1;
          `CHECK_EQUAL(bD, 16'h1331); 
          iComT = 16'h987F; #1;         
-         `CHECK_EQUAL(bD, 16'h1331); // старое значние
+         `CHECK_EQUAL(bD, 16'h987F); 
          iCS = ~CS; #1; 
          `CHECK_EQUAL(bD, 16'hZZZZ); // 3-е состояние
          iCS = CS; #1;
-         `CHECK_EQUAL(bD, 16'h987F); // новое значние 
+         `CHECK_EQUAL(bD, 16'h987F); //  
          iComT = 16'h1234; #1;
-         `CHECK_EQUAL(bD, 16'h987F); // старое значение
+         `CHECK_EQUAL(bD, 16'h1234); // 
          iRd = 1'b1; #1;               
          `CHECK_EQUAL(bD, DATA_BUS_DEF);  // сигнал на входе шины 
          iRd = 1'b0; #1;
-         `CHECK_EQUAL(bD, 16'h1234); // новое значение
+         `CHECK_EQUAL(bD, 16'h1234); // 
          iComT = 16'h7893; #1;
-         `CHECK_EQUAL(bD, 16'h1234); // старое значние    
+         `CHECK_EQUAL(bD, 16'h7893); //     
          iA = 2'b01; #1; 
          iA = 2'b00; #1;
-         `CHECK_EQUAL(bD, 16'h7893); // новое значение
+         `CHECK_EQUAL(bD, 16'h7893); // 
       end
 
        // проверка записи

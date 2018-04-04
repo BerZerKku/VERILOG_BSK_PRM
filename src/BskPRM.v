@@ -22,12 +22,11 @@ module BskPRM # (
 	// код разрешения работы клеммника
 	localparam ENABLE  = 8'hE1; 
 
-	// команды старший и младший байт
+	// команды
 	reg [15:0] com;
-	reg [3:0] com_err;
 
-	// шина чтения
-	reg [15:0] data_bus;
+	// флаг ошибки в командах
+	reg [3:0] com_err;
 
 	// команды индикации
 	reg [15:0] com_ind;
@@ -35,12 +34,17 @@ module BskPRM # (
 	// команда управления
 	reg [7:0] control;	
 
+	// набор сигналов для чтения
+	wire [15:0] in3;
+
+	// шина чтения
+	wire [15:0] data_bus;
+
 	initial begin
 		control = 8'h00;
 		com  = 16'h0000;
 		com_err = 4'b1111;
 		com_ind = 16'h0000;	
-		data_bus = 16'h0000;
 	end
 	
 	// сигнал сброса (активный 1)
@@ -63,33 +67,20 @@ module BskPRM # (
 
 	// индикация команд
 	assign oComInd = ~com_ind;
-
-	// двунаправленная шина данных
-	assign bD = (iRd || !cs) ? 16'bZ : data_bus; 
 	
 	// выход команд
 	assign oCom = (com_err || bl) ? 16'hFFFF : com;
 	
-	// чтение данных 
-	always @ (cs or iRd or iA)	begin : data_read
-		if (cs && !iRd) begin
-			case(iA)
-				2'b00: begin
-					data_bus <= iComT; 
-				end
-				2'b01: begin
-					data_bus <= com;				
-				end
-				2'b10: begin
-					data_bus <= 16'h0000;
-				end
-				2'b11: begin
-					data_bus[07:0] <= (VERSION << 2) + (iKEnable << 1) + !enable;
-					data_bus[15:8] <= PASSWORD;
-				end
-			endcase
-		end
-	end
+	// набор сигналов для считывания 
+	assign in3 = (PASSWORD <<8) + (VERSION << 2) + (iKEnable << 1) + !enable;
+	
+	// шина чтения
+	assign data_bus =	(iA == 2'b00) ? iComT : 
+						(iA == 2'b01) ? com : 
+						(iA == 2'b10) ? 16'h0000 : in3;
+
+	// двунаправленная шина данных
+	assign bD = (iRd || !cs) ? 16'bZ : data_bus; 
 
 	// запись внутренних регистров
 	always @ (cs or iWr or iA or aclr) begin : data_write
@@ -104,14 +95,14 @@ module BskPRM # (
 				2'b00: begin 
 					com[3:0] <= bD[7:4];
 					com[7:4] <= bD[15:12];	
-					com_err[0] <= !(bD[3:0] == ~bD[7:4]);
-					com_err[1] <= !(bD[11:8] == ~bD[15:12]);
+					com_err[0] <= bD[3:0] != ~bD[7:4];
+					com_err[1] <= bD[11:8] != ~bD[15:12];
 				end
 				2'b01: begin
 					com[11:8] <= bD[7:4];
 					com[15:12] <= bD[15:12];
-					com_err[2] <= !(bD[3:0] == ~bD[7:4]);
-					com_err[3] <= !(bD[11:8] == ~bD[15:12]);
+					com_err[2] <= bD[3:0] != ~bD[7:4];
+					com_err[3] <= bD[11:8] != ~bD[15:12];
 				end
 				2'b10: begin
 					com_ind <= bD;
