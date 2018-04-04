@@ -34,6 +34,7 @@ module tb_BskPRM;
    wire [15:0] oComInd; // выход индикации команд (активный 0)
    wire oCS;            // выход адреса микросхемы (активный 0)
    wire oEnable;        // выход разрешения работы клеммника (активный 0)
+   wire [15:0] debug;   // выход отладки
 
    reg [15:0] data_bus = DATA_BUS_DEF;
 
@@ -102,7 +103,7 @@ module tb_BskPRM;
           // проверка регистра 11
          iA = 2'b11;
          #1;
-         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b10;
          `CHECK_EQUAL(bD, tmp); 
 
          // проверка корректного считывания во время сброса 
@@ -170,7 +171,7 @@ module tb_BskPRM;
          iA = 2'b10; #1;
          `CHECK_EQUAL(bD, 16'h0000); 
          iA = 2'b11; #1; 
-         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b10;
          `CHECK_EQUAL(bD, tmp);
 
          // проверка записи данных в регистры 00 и 01
@@ -192,19 +193,19 @@ module tb_BskPRM;
          data_bus = 8'hE1;
          iA = 2'b11; iRd = 1'b1; #1;
          iRd = 1'b0; #1;
-         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b10;
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
          `CHECK_EQUAL(bD, tmp);
          data_bus = 8'h11;
          iA = 2'b00; #1;
          iRd = 1'b1; iA = 2'b11; #1;
          iRd = 1'b0; #1;
-         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b10;
          `CHECK_EQUAL(bD, tmp);
          data_bus = 8'hE1;
          iRd = 1'b1; iCS = ~CS; #1;
          iCS = CS; #1;
          iRd = 1'b0; #1;
-         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b10;
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
          `CHECK_EQUAL(bD, tmp);
          
          // проверка при неактивном CS
@@ -226,7 +227,7 @@ module tb_BskPRM;
          iA = 2'b01; #1;
          `CHECK_EQUAL(bD, 16'h0000); 
          iA = 2'b11; #1;
-         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
+         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b10;
          `CHECK_EQUAL(bD, tmp);
       end
 
@@ -286,13 +287,6 @@ module tb_BskPRM;
          // запись корректного значения 16-9 команд
          data_bus = 16'hF078;
          iA = 2'b01; #1;
-         `CHECK_EQUAL(oCom, 16'hF7A5);
-         // запись ошибочного значения 1-4 команд
-         data_bus = 16'hA55B;
-         iA = 2'b00; #1;
-         `CHECK_EQUAL(oCom, 16'hFFFF);
-         data_bus = 16'hA55A;
-         iWr = 1'b1; #1; iWr = 1'b0; #1;
          `CHECK_EQUAL(oCom, 16'hF7A5);
 
          // проверка на ошибку в переданных командах 1-8

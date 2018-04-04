@@ -16,7 +16,9 @@ module BskPRM # (
 	output wire [15:0] oCom,	// выход команд (активный 0)
 	output wire [15:0] oComInd,	// выход индикации команд (активный 0)
 	output wire oCS,			// выход адреса микросхемы (активный 0)
-	output wire oEnable			// выход разрешения работы клеммника (активный 0)
+	output wire oEnable,		// выход разрешения работы клеммника (активный 0)
+
+	output wire [15:0] debug	// выход отладки
 );
 	
 	// код разрешения работы клеммника
@@ -72,7 +74,7 @@ module BskPRM # (
 	assign oCom = (com_err || bl) ? 16'hFFFF : com;
 	
 	// набор сигналов для считывания 
-	assign in3 = (PASSWORD <<8) + (VERSION << 2) + (iKEnable << 1) + !enable;
+	assign in3 = (PASSWORD << 8) + (VERSION << 2) + (iKEnable << 1) + enable;
 	
 	// шина чтения
 	assign data_bus =	(iA == 2'b00) ? iComT : 
@@ -81,6 +83,9 @@ module BskPRM # (
 
 	// двунаправленная шина данных
 	assign bD = (iRd || !cs) ? 16'bZ : data_bus; 
+
+	// тестовые сигналы
+	assign debug = 16'h0000;
 
 	// запись внутренних регистров
 	always @ (cs or iWr or iA or aclr) begin : data_write
@@ -95,14 +100,14 @@ module BskPRM # (
 				2'b00: begin 
 					com[3:0] <= bD[7:4];
 					com[7:4] <= bD[15:12];	
-					com_err[0] <= bD[3:0] != ~bD[7:4];
-					com_err[1] <= bD[11:8] != ~bD[15:12];
+					com_err[0] <= !(bD[3:0] == ~bD[7:4]);
+					com_err[1] <= !(bD[11:8] == ~bD[15:12]);
 				end
 				2'b01: begin
 					com[11:8] <= bD[7:4];
 					com[15:12] <= bD[15:12];
-					com_err[2] <= bD[3:0] != ~bD[7:4];
-					com_err[3] <= bD[11:8] != ~bD[15:12];
+					com_err[2] <= !(bD[3:0] == ~bD[7:4]);
+					com_err[3] <= !(bD[11:8] == ~bD[15:12]);
 				end
 				2'b10: begin
 					com_ind <= bD;

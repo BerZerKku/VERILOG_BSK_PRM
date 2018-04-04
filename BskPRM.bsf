@@ -108,6 +108,13 @@ applicable agreement for further details.
 		(line (pt 216 96)(pt 200 96)(line_width 1))
 	)
 	(port
+		(pt 216 112)
+		(output)
+		(text "debug[15..0]" (rect 0 0 47 12)(font "Arial" ))
+		(text "debug[15..0]" (rect 148 107 195 119)(font "Arial" ))
+		(line (pt 216 112)(pt 200 112)(line_width 3))
+	)
+	(port
 		(pt 216 32)
 		(bidir)
 		(text "bD[15..0]" (rect 0 0 35 12)(font "Arial" ))

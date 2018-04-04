@@ -4,3 +4,8 @@ vunit_out/
 *.rpt
 *.done
 *.summary
+*.jdi
+*.cdf
+*.smsg
+*.bak
+*.pin
