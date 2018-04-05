@@ -88,14 +88,14 @@ module BskPRM # (
 	assign debug = 16'h0000;
 
 	// запись внутренних регистров
-	always @ (cs or iWr or iA or aclr) begin : data_write
+	always @ (posedge iWr or posedge aclr) begin : data_write
 		if (aclr) begin
 			control <=  8'h00;
 			com <= 16'h0000;
 			com_err <= 4'b1111;
 			com_ind <= 16'h0000;	
 		end
-		else if (cs && !iWr) begin
+		else if (cs && iWr) begin
 			case (iA)
 				2'b00: begin 
 					com[3:0] <= bD[7:4];

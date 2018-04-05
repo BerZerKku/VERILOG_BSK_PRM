@@ -175,50 +175,52 @@ module tb_BskPRM;
          `CHECK_EQUAL(bD, tmp);
 
          // проверка записи данных в регистры 00 и 01
-         iRd = 1'b1; 
-         iA = 2'b00; #1;
+         iA = 2'b00;
+         iRd = 1'b1; #1;
          data_bus = 16'hA5C3;
-         iWr = 1'b0; #1;
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          data_bus = 16'h8769;
          iA = 2'b01; #1;
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          iRd = 1'b0; #1;
          `CHECK_EQUAL(bD, 16'h86AC);
             
          // проверка записи данных в регистр 10
          data_bus = 16'h1234;
-         iA = 2'b10; iRd = 1'b1; #1;
+         iA = 2'b10; 
+         iRd = 1'b1; #1;
+         iWr = 1'b0; #1;
+         `CHECK_EQUAL(oComInd, 16'hFFFF);
+         iWr = 1'b1; #1;
          `CHECK_EQUAL(oComInd, ~16'h1234);
 
          // проверка записи данных в регистр 11
          data_bus = 8'hE1;
-         iA = 2'b11; iRd = 1'b1; #1;
+         iA = 2'b11; 
+         iRd = 1'b1; #1;
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          iRd = 1'b0; #1;
          tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
          `CHECK_EQUAL(bD, tmp);
          data_bus = 8'h11;
-         iA = 2'b00; #1;
-         iRd = 1'b1; iA = 2'b11; #1;
+         iRd = 1'b1; 
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          iRd = 1'b0; #1;
          tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b10;
-         `CHECK_EQUAL(bD, tmp);
-         data_bus = 8'hE1;
-         iRd = 1'b1; iCS = ~CS; #1;
-         iCS = CS; #1;
-         iRd = 1'b0; #1;
-         tmp = (PASSWORD << 8) + (VERSION << 2) + 2'b11;
          `CHECK_EQUAL(bD, tmp);
          
          // проверка при неактивном CS
          data_bus  = 16'h1516; 
-         iA = 2'b10; iRd = 1'b1; #1;
+         iA = 2'b10; 
+         iRd = 1'b1; #1;
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          `CHECK_EQUAL(oComInd, ~16'h1516);
          iCS = ~CS; #1;
          `CHECK_EQUAL(oComInd, ~16'h1516);
          data_bus  = 16'h3456;
-         iWr = 1'b1; #1; iWr = 1'b0; #1;
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          `CHECK_EQUAL(oComInd, ~16'h1516);
          iCS = CS; #1;
-         `CHECK_EQUAL(oComInd, ~16'h3456);
 
          // проверка очистки регистров при сбросе
          iRes = 1'b0; iRd = 1'b0; #1;
@@ -240,34 +242,31 @@ module tb_BskPRM;
          data_bus = 16'h9231;
          iCS = CS;
          iA = 2'b10;
+         
 
-         // проверка при установленном сигнале сброса
-         iWr = 1'b0;
-         #1
+         // проверка записи при наличии сигнала сброса
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          `CHECK_EQUAL(oComInd, 16'hFFFF);
 
-         // проверка в отсутсвии сигнала сброса
-         iRes = 1'b1;
-         #1
+         // проверка записи
+         iRes = 1'b1; #1;
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          `CHECK_EQUAL(oComInd, ~data_bus);
-
+         
          // проверка в остутсвтии сигнала CS
-         iCS = ~CS;
-         #1
+         iCS = ~CS; #1;
          `CHECK_EQUAL(oComInd, ~data_bus);
 
          // проверка влияния сигнала блокировки
-         iBl = 1'b1;
-         #1
+         iBl = 1'b1; #1;
          `CHECK_EQUAL(oComInd, ~data_bus);
-         iBl = 1'b0;
-         #1
+         iBl = 1'b0; #1;
          `CHECK_EQUAL(oComInd, ~data_bus);
 
          // проверка сигнала сброса
-         iRes = 1'b0;
-         #1
+         iRes = 1'b0; #1;
          `CHECK_EQUAL(oComInd, 16'hFFFF);
+
       end
 
       // проверка команд 
@@ -278,15 +277,17 @@ module tb_BskPRM;
          iRes = 1'b1;
          iCS = CS;
          iBl = 1'b1;
-         iRes = 1'b1;
+         iRes = 1'b1; #1;
 
          // запись корректного значения 1-8 команд
          data_bus = 16'hA55A;
-         iA = 2'b00; iWr = 1'b0; #1;
+         iA = 2'b00; 
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          `CHECK_EQUAL(oCom, 16'hFFFF);
          // запись корректного значения 16-9 команд
          data_bus = 16'hF078;
-         iA = 2'b01; #1;
+         iA = 2'b01;
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          `CHECK_EQUAL(oCom, 16'hF7A5);
 
          // проверка на ошибку в переданных командах 1-8
@@ -295,10 +296,10 @@ module tb_BskPRM;
             tmp = 16'hA55A;
             data_bus = tmp;
             data_bus[count] = !data_bus[count];
-            iWr = 1'b1; #1; iWr = 1'b0; #1;
+            iWr = 1'b0; #1; iWr = 1'b1; #1;
             `CHECK_EQUAL(oCom, 16'hFFFF);
             data_bus = tmp;
-            iWr = 1'b1; #1; iWr = 1'b0; #1;
+            iWr = 1'b0; #1; iWr = 1'b1; #1;
             `CHECK_EQUAL(oCom, 16'hF7A5);
          end
 
@@ -308,10 +309,10 @@ module tb_BskPRM;
             tmp = 16'hF078;
             data_bus = tmp;
             data_bus[count] = !data_bus[count];
-            iWr = 1'b1; #1; iWr = 1'b0; #1;
+            iWr = 1'b0; #1; iWr = 1'b1; #1;
             `CHECK_EQUAL(oCom, 16'hFFFF);
             data_bus = tmp;
-            iWr = 1'b1; #1; iWr = 1'b0; #1;
+            iWr = 1'b0; #1; iWr = 1'b1; #1;
             `CHECK_EQUAL(oCom, 16'hF7A5);
          end
          
@@ -331,7 +332,8 @@ module tb_BskPRM;
          iCS = CS;
          `CHECK_EQUAL(oEnable, 1'b1);
          data_bus = 8'hE1;
-         iA = 2'b11; iWr = 1'b0; #1;
+         iA = 2'b11; 
+         iWr = 1'b0; #1; iWr = 1'b1; #1;
          `CHECK_EQUAL(oEnable, 1'b0);
          iCS = ~iCS; #1;
          `CHECK_EQUAL(oEnable, 1'b0);
